@@ -8,4 +8,4 @@ routers:
   routes:
   - application_name: handoutify
     paths:
-    - /handoutify
+    - /

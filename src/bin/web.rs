@@ -1,5 +1,5 @@
 use actix_multipart::Multipart;
-use actix_web::{web, App, HttpResponse, HttpServer};
+use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer};
 use askama_actix::Template;
 use futures::StreamExt;
 use lopdf::Document;
@@ -26,8 +26,10 @@ async fn convert(mut payload: Multipart) -> HttpResponse {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    env_logger::init();
+
     HttpServer::new(|| {
-        App::new().service(
+        App::new().wrap(Logger::default()).service(
             web::resource("/")
                 .route(web::get().to(index))
                 .route(web::post().to(convert)),
