@@ -1,13 +1,21 @@
 use lopdf::{Document, Object};
 
+const PAGE_LABELS: &[u8; 10] = b"PageLabels";
+
 pub fn handoutify(doc: &mut Document) {
-    let catalog = doc.catalog().unwrap();
-    let nums = match catalog.get(b"PageLabels").unwrap() {
-        Object::Dictionary(dictionary) => dictionary,
-        _ => unreachable!(),
-    }
-    .get(b"Nums")
-    .unwrap();
+    // Get catalog manually https://docs.rs/lopdf/0.26.0/src/lopdf/document.rs.html#148-153
+    let catalog_id = doc.trailer.get(b"Root").unwrap().as_reference().unwrap();
+    let nums = doc
+        .get_object(catalog_id)
+        .unwrap()
+        .as_dict()
+        .unwrap()
+        .get(PAGE_LABELS)
+        .unwrap()
+        .as_dict()
+        .unwrap()
+        .get(b"Nums")
+        .unwrap();
 
     let arr = match nums {
         Object::Array(array) => array,
@@ -33,5 +41,11 @@ pub fn handoutify(doc: &mut Document) {
         prev = x;
     }
 
+    doc.get_object_mut(catalog_id)
+        .unwrap()
+        .as_dict_mut()
+        .unwrap()
+        .remove(PAGE_LABELS)
+        .unwrap();
     doc.delete_pages(&pages);
 }
