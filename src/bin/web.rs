@@ -19,6 +19,7 @@ async fn convert(mut payload: Multipart) -> HttpResponse {
         pdf.extend(chunk.unwrap());
     }
     let mut doc = Document::load_mem(&pdf).unwrap();
+    pdf.clear();
     handoutify::handoutify(&mut doc);
     doc.save_to(&mut pdf).unwrap();
     HttpResponse::Ok().content_type("application/pdf").body(pdf)
