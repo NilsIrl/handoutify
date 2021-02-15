@@ -3,8 +3,16 @@
 <head>
 	<meta charset="UTF-8">
 	<title></title>
+	<style>
+.error {
+	color: red;
+}
+	</style>
 </head>
 <body>
+	{% if message.is_some() %}
+		<p class="error">{{ message.unwrap() }}</p>
+	{% endif %}
 	<form method="post" enctype="multipart/form-data">
 		<input type="file" accept="application/pdf" name="file" required>
 		<input type="submit">

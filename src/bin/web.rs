@@ -1,28 +1,44 @@
 use actix_multipart::Multipart;
-use actix_web::{middleware::Logger, web, App, HttpResponse, HttpServer};
+use actix_web::{middleware::Logger, web, App, Either, HttpResponse, HttpServer};
 use askama_actix::Template;
 use futures::StreamExt;
 use lopdf::Document;
 
 #[derive(Template)]
 #[template(path = "index.html")]
-struct IndexTemplate {}
-
-async fn index() -> IndexTemplate {
-    IndexTemplate {}
+struct IndexTemplate<'a> {
+    message: Option<&'a str>,
 }
 
-async fn convert(mut payload: Multipart) -> HttpResponse {
-    let mut field = payload.next().await.unwrap().unwrap();
+async fn index() -> IndexTemplate<'static> {
+    IndexTemplate { message: None }
+}
+
+type ConvertionResult<'a> = Either<HttpResponse, IndexTemplate<'a>>;
+
+async fn convert(mut payload: Multipart) -> ConvertionResult<'static> {
     let mut pdf = Vec::new();
     while let Some(chunk) = field.next().await {
         pdf.extend(chunk.unwrap());
     }
-    let mut doc = Document::load_mem(&pdf).unwrap();
+    let mut doc = match Document::load_mem(&pdf) {
+        Ok(doc) => doc,
+        Err(_) => {
+            return Either::B(IndexTemplate {
+                message: Some("Invalid PDF document."),
+            });
+        }
+    };
     pdf.clear();
-    handoutify::handoutify(&mut doc);
-    doc.save_to(&mut pdf).unwrap();
-    HttpResponse::Ok().content_type("application/pdf").body(pdf)
+    match handoutify::handoutify(&mut doc) {
+        Ok(_) => {
+            doc.save_to(&mut pdf).unwrap();
+            Either::A(HttpResponse::Ok().content_type("application/pdf").body(pdf))
+        }
+        Err(_) => Either::B(IndexTemplate {
+            message: Some("The PDF file cannot be modified. Does it contain pauses?"),
+        }),
+    }
 }
 
 #[actix_web::main]

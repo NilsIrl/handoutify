@@ -2,7 +2,7 @@ use lopdf::{Document, Object};
 
 const PAGE_LABELS: &[u8; 10] = b"PageLabels";
 
-pub fn handoutify(doc: &mut Document) {
+pub fn handoutify(doc: &mut Document) -> Result<(), lopdf::Error> {
     // Get catalog manually https://docs.rs/lopdf/0.26.0/src/lopdf/document.rs.html#148-153
     let catalog_id = doc.trailer.get(b"Root").unwrap().as_reference().unwrap();
     let nums = doc
@@ -10,8 +10,7 @@ pub fn handoutify(doc: &mut Document) {
         .unwrap()
         .as_dict()
         .unwrap()
-        .get(PAGE_LABELS)
-        .unwrap()
+        .get(PAGE_LABELS)?
         .as_dict()
         .unwrap()
         .get(b"Nums")
@@ -48,4 +47,5 @@ pub fn handoutify(doc: &mut Document) {
         .remove(PAGE_LABELS)
         .unwrap();
     doc.delete_pages(&pages);
+    Ok(())
 }
