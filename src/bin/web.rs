@@ -17,9 +17,25 @@ async fn index() -> IndexTemplate<'static> {
 type ConvertionResult<'a> = Either<HttpResponse, IndexTemplate<'a>>;
 
 async fn convert(mut payload: Multipart) -> ConvertionResult<'static> {
+    let mut prune_objects = false;
+    let mut renumber_objects = false;
     let mut pdf = Vec::new();
-    while let Some(chunk) = field.next().await {
-        pdf.extend(chunk.unwrap());
+
+    while let Some(Ok(mut field)) = payload.next().await {
+        match field.content_disposition().unwrap().get_name().unwrap() {
+            "prune-objects" => {
+                prune_objects = true;
+            }
+            "renumber-objects" => {
+                renumber_objects = true;
+            }
+            "file" => {
+                while let Some(chunk) = field.next().await {
+                    pdf.extend(chunk.unwrap());
+                }
+            }
+            _ => unreachable!(),
+        }
     }
     let mut doc = match Document::load_mem(&pdf) {
         Ok(doc) => doc,
@@ -32,6 +48,13 @@ async fn convert(mut payload: Multipart) -> ConvertionResult<'static> {
     pdf.clear();
     match handoutify::handoutify(&mut doc) {
         Ok(_) => {
+            if prune_objects {
+                doc.prune_objects();
+            }
+            if renumber_objects {
+                doc.renumber_objects();
+            }
+
             doc.save_to(&mut pdf).unwrap();
             Either::A(HttpResponse::Ok().content_type("application/pdf").body(pdf))
         }

@@ -16,6 +16,15 @@
 	<form method="post" enctype="multipart/form-data">
 		<input type="file" accept="application/pdf" name="file" required>
 		<input type="submit">
+		<p>Advanced:</p>
+		<div>
+			<input type="checkbox" name="prune-objects" checked>
+			<label for="prune-objects">Optimize PDF (Recommended)</label>
+		</div>
+		<div>
+			<input type="checkbox" name="renumber-objects" checked>
+			<label for="renumber-objects">Renumber PDF objects (Recommended)</label>
+		</div>
 	</form>
 </body>
 </html>
