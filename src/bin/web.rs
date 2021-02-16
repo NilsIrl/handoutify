@@ -69,11 +69,15 @@ async fn main() -> std::io::Result<()> {
     env_logger::init();
 
     HttpServer::new(|| {
-        App::new().wrap(Logger::default()).service(
-            web::resource("/")
-                .route(web::get().to(index))
-                .route(web::post().to(convert)),
-        )
+        App::new()
+            .wrap(Logger::new(
+                "%{X-Forwarded-For}i \"%r\" %s %b \"%{Referer}i\" \"%{User-Agent}i\" %T",
+            ))
+            .service(
+                web::resource("/")
+                    .route(web::get().to(index))
+                    .route(web::post().to(convert)),
+            )
     })
     .bind("0.0.0.0:8080")?
     .run()
