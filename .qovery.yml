@@ -5,6 +5,9 @@ application:
   cpu: 1
 routers:
 - name: main
+  custom_domains:
+  - branch: master
+    domain: handoutify.tools.nilsand.re
   routes:
   - application_name: handoutify
     paths:
