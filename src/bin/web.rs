@@ -1,5 +1,5 @@
 use actix_multipart::Multipart;
-use actix_web::{middleware::Logger, web, App, Either, HttpResponse, HttpServer};
+use actix_web::{http, middleware::Logger, web, App, Either, HttpResponse, HttpServer};
 use askama_actix::Template;
 use futures::StreamExt;
 use lopdf::Document;
@@ -19,10 +19,14 @@ type ConvertionResult<'a> = Either<HttpResponse, IndexTemplate<'a>>;
 async fn convert(mut payload: Multipart) -> ConvertionResult<'static> {
     let mut prune_objects = false;
     let mut renumber_objects = false;
+    let mut download = false;
     let mut pdf = Vec::new();
 
     while let Some(Ok(mut field)) = payload.next().await {
         match field.content_disposition().unwrap().get_name().unwrap() {
+            "download" => {
+                download = true;
+            }
             "prune-objects" => {
                 prune_objects = true;
             }
@@ -56,7 +60,19 @@ async fn convert(mut payload: Multipart) -> ConvertionResult<'static> {
             }
 
             doc.save_to(&mut pdf).unwrap();
-            Either::A(HttpResponse::Ok().content_type("application/pdf").body(pdf))
+            Either::A(
+                HttpResponse::Ok()
+                    .set_header(
+                        http::header::CONTENT_DISPOSITION,
+                        if download {
+                            "attachment; filename=\"document.pdf\""
+                        } else {
+                            "inline"
+                        },
+                    )
+                    .content_type("application/pdf")
+                    .body(pdf),
+            )
         }
         Err(_) => Either::B(IndexTemplate {
             message: Some("The PDF file cannot be modified. Does it contain pauses?"),
