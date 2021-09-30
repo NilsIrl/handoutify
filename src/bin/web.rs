@@ -3,6 +3,7 @@ use actix_web::{http, middleware::Logger, web, App, Either, HttpResponse, HttpSe
 use askama_actix::Template;
 use futures::StreamExt;
 use lopdf::Document;
+use std::env;
 
 #[derive(Template)]
 #[template(path = "index.html")]
@@ -95,7 +96,10 @@ async fn main() -> std::io::Result<()> {
                     .route(web::post().to(convert)),
             )
     })
-    .bind("0.0.0.0:8080")?
+    .bind((
+        "0.0.0.0",
+        env::var("PORT").map(|s| s.parse().unwrap()).unwrap_or(8080),
+    ))?
     .run()
     .await
 }
